@@ -7,6 +7,23 @@ const path = require('path');
 const { connect } = require('./lib/browser');
 
 const CHANNEL = 'UCvRJxeC70u_WWcBEeF7nBQA';
+const PLAYLIST = 'Our Memory'; // Iker, 2026-09-30: every upload goes into this playlist
+
+// In the upload dialog: Playlists > Select > tick the playlist > Done.
+async function addToPlaylist(page, d, name) {
+  await d.locator('ytcp-video-metadata-playlists ytcp-text-dropdown-trigger, ytcp-video-metadata-playlists #dropdown-trigger, ytcp-text-dropdown-trigger:has-text("Select")').first().click();
+  await page.waitForTimeout(1500);
+  const popup = page.locator('ytcp-playlist-dialog, tp-yt-iron-dropdown').locator('visible=true').first();
+  const row = popup.locator(`[role=option]:has-text("${name}"), ytcp-checkbox-group-item:has-text("${name}"), li:has-text("${name}")`).first();
+  if (!(await row.count())) throw new Error(`playlist "${name}" not found in the list`);
+  await row.click();
+  await page.waitForTimeout(800);
+  await popup.locator('ytcp-button:has-text("Done"), button:has-text("Done")').first().click();
+  await page.waitForTimeout(1000);
+  const shown = await d.locator('ytcp-video-metadata-playlists').innerText().catch(() => '');
+  if (!shown.includes(name)) throw new Error(`playlist "${name}" was not applied, dialog shows: ${shown.slice(0, 100)}`);
+  console.log(`playlist: ${name}`);
+}
 
 async function upload(page, file, title) {
   if (!fs.existsSync(file)) throw new Error('no such file: ' + file);
@@ -26,6 +43,7 @@ async function upload(page, file, title) {
   await page.keyboard.type(title);
   await d.locator('tp-yt-paper-radio-button[name="VIDEO_MADE_FOR_KIDS_NOT_MFK"]').click();
   await page.waitForTimeout(800);
+  await addToPlaylist(page, d, PLAYLIST);
   for (let i = 0; i < 3; i++) { await d.locator('#next-button').click(); await page.waitForTimeout(2000); }
   await d.locator('tp-yt-paper-radio-button[name="PRIVATE"]').click();
   await page.waitForTimeout(800);

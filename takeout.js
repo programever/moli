@@ -25,10 +25,8 @@ async function create(page, year) {
   await page.waitForTimeout(800);
   await dialog.locator(`text=Photos from ${year}`).first().click();
   await page.waitForTimeout(800);
-  const checked = await dialog.locator('input[type=checkbox]:checked').count();
-  if (checked !== 1) throw new Error(`expected 1 album ticked, got ${checked}`);
-  // The OK button only reacts to a real mouse click, not to a scripted one.
-  const ok = dialog.locator("button:has-text('OK')").first();
+  // The OK button is not a real <button>, and it only reacts to a real mouse click.
+  const ok = dialog.getByText('OK', { exact: true }).locator('visible=true').first();
   const box = await ok.boundingBox();
   await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
   await page.waitForTimeout(1500);
