@@ -11,15 +11,22 @@ const PLAYLIST = 'Our Memory'; // Iker, 2026-09-30: every upload goes into this 
 
 // In the upload dialog: Playlists > Select > tick the playlist > Done.
 async function addToPlaylist(page, d, name) {
-  await d.locator('ytcp-video-metadata-playlists ytcp-text-dropdown-trigger, ytcp-video-metadata-playlists #dropdown-trigger, ytcp-text-dropdown-trigger:has-text("Select")').first().click();
-  await page.waitForTimeout(1500);
-  const popup = page.locator('ytcp-playlist-dialog, tp-yt-iron-dropdown').locator('visible=true').first();
-  const row = popup.locator(`[role=option]:has-text("${name}"), ytcp-checkbox-group-item:has-text("${name}"), li:has-text("${name}")`).first();
+  await d.locator('ytcp-video-metadata-playlists ytcp-text-dropdown-trigger').first().click();
+  await page.waitForTimeout(2500);
+  const popup = page.locator('ytcp-playlist-dialog');
+  const row = popup.locator('li.row', { hasText: name }).first();
   if (!(await row.count())) throw new Error(`playlist "${name}" not found in the list`);
-  await row.click();
+  // The tick box and the Done button only react to real mouse clicks at their position.
+  const cb = row.locator('ytcp-checkbox, #checkbox').first();
+  const b = await cb.boundingBox();
+  if (!b) throw new Error(`playlist "${name}" tick box is not on screen`);
+  await page.mouse.click(b.x + b.width / 2, b.y + b.height / 2);
   await page.waitForTimeout(800);
-  await popup.locator('ytcp-button:has-text("Done"), button:has-text("Done")').first().click();
-  await page.waitForTimeout(1000);
+  if ((await cb.getAttribute('aria-checked')) !== 'true') throw new Error(`playlist "${name}" did not get ticked`);
+  const done = popup.locator('button', { hasText: 'Done' }).first();
+  const db = await done.boundingBox();
+  await page.mouse.click(db.x + db.width / 2, db.y + db.height / 2);
+  await page.waitForTimeout(1500);
   const shown = await d.locator('ytcp-video-metadata-playlists').innerText().catch(() => '');
   if (!shown.includes(name)) throw new Error(`playlist "${name}" was not applied, dialog shows: ${shown.slice(0, 100)}`);
   console.log(`playlist: ${name}`);
