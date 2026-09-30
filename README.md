@@ -67,3 +67,10 @@ sudo apt-get install ffmpeg imagemagick libheif-plugin-libde265 libimage-exiftoo
 
 `libheif-plugin-libde265` is the decoder for iPhone HEIC photos. Without it,
 ImageMagick says "Unsupported codec" and every HEIC photo is skipped.
+
+## YouTube
+
+`node youtube.js upload ~/photos/out/2026-08.mp4 "August 2026"` uploads one video to
+Iker's YouTube channel as **private**, through the YouTube Studio page in the logged-in
+browser. No Google API key is needed. If Google changes the Studio page, this script
+must be fixed.
