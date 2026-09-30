@@ -8,11 +8,12 @@ cd ~/moli
 # systemd does not know the nvm node; use the same node as the shell.
 export PATH="$HOME/.nvm/versions/node/v24.20.0/bin:$PATH"
 DATA=${MOLI_DATA:-$HOME/photos}
-DIRS="$HOME/Downloads /tmp/playwright-artifacts-*"
 LABEL=${1:-export}
 
-have_download() { ls $DIRS/*.crdownload >/dev/null 2>&1; }
-have_zip() { for f in $(ls -S $DIRS/* 2>/dev/null); do [ -f "$f" ] && [ "$(head -c 2 "$f")" = "PK" ] && return 0; done; return 1; }
+# Files in the folders where Chromium puts downloads. Extra find options limit the list.
+files() { for d in "$HOME/Downloads" /tmp/playwright-artifacts-*; do [ -d "$d" ] && find "$d" -maxdepth 1 -type f "$@"; done; }
+have_download() { [ -n "$(files -name '*.crdownload')" ]; }
+have_zip() { for f in $(files ! -name '*.crdownload'); do [ "$(head -c 2 "$f")" = "PK" ] && return 0; done; return 1; }
 
 out=$(node takeout.js download 2>&1); echo "$out"
 if echo "$out" | grep -q "PASSWORD NEEDED"; then
@@ -45,8 +46,7 @@ node status.js open "" >/dev/null
 
 mkdir -p "$DATA/takeout" "$DATA/library"
 n=0
-for f in $(ls -S $DIRS/* 2>/dev/null); do
-  [ -f "$f" ] || continue
+for f in $(files ! -name '*.crdownload' -size +1M | xargs -r ls -S); do
   [ "$(head -c 2 "$f")" = "PK" ] || continue
   n=$((n+1)); z="$DATA/takeout/$LABEL-$n.zip"
   mv "$f" "$z"
