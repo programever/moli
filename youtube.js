@@ -28,7 +28,7 @@ async function addToPlaylist(page, d, name) {
 async function upload(page, file, title) {
   if (!fs.existsSync(file)) throw new Error('no such file: ' + file);
   await page.goto(`https://studio.youtube.com/channel/${CHANNEL}/videos/upload?d=ud`, { waitUntil: 'domcontentloaded' });
-  await page.waitForSelector('input[type=file]', { timeout: 30000 });
+  await page.waitForSelector('input[type=file]', { state: 'attached', timeout: 60000 });
   // Playwright refuses files over 50 MB through a remote connection, so hand the path to Chromium directly.
   const cdp = await page.context().newCDPSession(page);
   const { root } = await cdp.send('DOM.getDocument', { depth: -1, pierce: true });
