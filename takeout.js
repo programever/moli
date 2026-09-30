@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Drive Google Takeout in the logged-in browser.
-//   node takeout.js create <year>    ask Google to pack "Photos from <year>" (zip files, 10 GB each)
+//   node takeout.js create <year> [more years]   ask Google to pack "Photos from <year>" (zip files, 10 GB each)
 //   node takeout.js status           print what the Takeout manage page says
 //   node takeout.js download         download all finished zip files to ~/photos/takeout
 const fs = require('fs');
@@ -11,7 +11,7 @@ const { connect } = require('./lib/browser');
 const DATA = process.env.MOLI_DATA || path.join(os.homedir(), 'photos');
 const ZIPS = path.join(DATA, 'takeout');
 
-async function create(page, year) {
+async function create(page, years) {
   await page.goto('https://takeout.google.com/settings/takeout', { waitUntil: 'domcontentloaded' });
   await page.waitForTimeout(3000);
   await page.locator('text=Deselect all').first().click();
@@ -23,15 +23,17 @@ async function create(page, year) {
   const dialog = page.locator('[role=dialog]');
   await dialog.locator('text=Deselect all').first().click();
   await page.waitForTimeout(800);
-  await dialog.locator(`text=Photos from ${year}`).first().click();
-  await page.waitForTimeout(800);
+  for (const year of years) {
+    await dialog.locator(`text=Photos from ${year}`).first().click();
+    await page.waitForTimeout(800);
+  }
   // The OK button is not a real <button>, and it only reacts to a real mouse click.
   const ok = dialog.getByText('OK', { exact: true }).locator('visible=true').first();
   const box = await ok.boundingBox();
   await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
   await page.waitForTimeout(1500);
   const summary = await page.innerText('body');
-  if (!summary.includes('1 photo album selected')) throw new Error('album choice did not stick');
+  if (!summary.includes(`${years.length} photo album${years.length > 1 ? 's' : ''} selected`)) throw new Error('album choice did not stick');
   await page.locator("button:has-text('Next step')").click();
   await page.waitForTimeout(2000);
   const size = page.locator('[role=combobox], [role=listbox]').filter({ hasText: '2 GB' }).first();
@@ -44,7 +46,7 @@ async function create(page, year) {
   await page.waitForTimeout(3000);
   const text = await page.innerText('body');
   if (!text.includes('Google is creating a copy')) throw new Error('export did not start:\n' + text.slice(0, 500));
-  console.log(`export for ${year} started`);
+  console.log(`export for ${years.join(', ')} started`);
 }
 
 async function status(page) {
@@ -80,9 +82,10 @@ async function download(page) {
 }
 
 (async () => {
-  const [cmd, arg] = process.argv.slice(2);
+  const [cmd, ...args] = process.argv.slice(2);
+  const arg = args[0];
   const { page } = await connect();
-  if (cmd === 'create' && /^\d{4}$/.test(arg || '')) await create(page, arg);
+  if (cmd === 'create' && args.length && args.every((y) => /^\d{4}$/.test(y))) await create(page, args);
   else if (cmd === 'status') await status(page);
   else if (cmd === 'download') await download(page);
   else { console.log('use: node takeout.js create <year> | status | download'); process.exit(1); }

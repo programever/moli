@@ -74,3 +74,17 @@ ImageMagick says "Unsupported codec" and every HEIC photo is skipped.
 Iker's YouTube channel as **private**, through the YouTube Studio page in the logged-in
 browser. No Google API key is needed. If Google changes the Studio page, this script
 must be fixed.
+
+## Runs by itself
+
+- `monthly.sh` runs on the 1st of every month at 04:00 (systemd user timer `moli-monthly.timer`).
+  It asks Takeout for the year, downloads, unpacks, makes the video of the month that just ended,
+  and uploads it as private into the playlist "Our Memory".
+- `fetch-export.sh <label>` downloads and unpacks the newest finished export. If Google asks for
+  Iker's password, it writes that into Alpha's memory and waits up to 6 days for Iker.
+- `run-month.sh YYYY-MM` makes and uploads one month. `backfill.sh 2016 2017 ...` does every month
+  of those years, oldest first, skipping months already uploaded.
+- `status.js` keeps `~/photos/status.json` and renders it into Alpha's memory file
+  `moli-status.md` in the alpha repo, so Alpha can remind Iker when something is stuck.
+- `resume-downloads.js` presses Resume on downloads that stopped because the internet dropped.
+- Logs: `~/photos/monthly.log`, `~/photos/backfill.log`, `~/photos/work/<month>.log`.
