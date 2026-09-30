@@ -2,7 +2,7 @@
 
 Moli makes one short video for each month from Iker's Google Photos.
 It picks 30 photos and 3 videos at random from the month, adds music and
-transitions, and saves a tall video for the phone.
+transitions, and saves a wide (landscape) video.
 
 Moli is Alpha's project. Alpha writes the code and runs it on the home box `alpha`.
 
@@ -22,7 +22,8 @@ Moli is Alpha's project. Alpha writes the code and runs it on the home box `alph
 4. **Build.** `lib/video.js` uses ffmpeg. Each photo gets a slow zoom for 3.5
    seconds. Each video clip is cut to 5 seconds. Wide photos get a blurred copy
    of themselves as background. Clips are joined with random transitions. One
-   music track is played under everything. The video is 1080x1920, 30 frames per second.
+   music track is played under everything. The video is wide, 1920x1080, 30 frames per
+   second. Set `MOLI_SHAPE=tall` for a phone-shaped 1080x1920 video.
 
 ## Commands
 

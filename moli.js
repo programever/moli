@@ -3,6 +3,7 @@
 //   node moli.js months            show how many photos and videos each month has
 //   node moli.js make 2026-08      make the video for one month
 //   node moli.js make 2026-08 --again   forget the old pick and pick again
+// Videos are wide (1920x1080). Set MOLI_SHAPE=tall for a phone-shaped video.
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
