@@ -5,6 +5,8 @@
 # download starts by itself in the browser and this script picks it up.
 set -u
 cd ~/moli
+# systemd does not know the nvm node; use the same node as the shell.
+export PATH="$HOME/.nvm/versions/node/v24.20.0/bin:$PATH"
 DATA=${MOLI_DATA:-$HOME/photos}
 DIRS="$HOME/Downloads /tmp/playwright-artifacts-*"
 LABEL=${1:-export}

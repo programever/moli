@@ -5,6 +5,8 @@
 #   FROM=2016-03 TO=2026-09 ./backfill.sh 2016 2017 ...   limit the range
 set -u
 cd ~/moli
+# systemd does not know the nvm node; use the same node as the shell.
+export PATH="$HOME/.nvm/versions/node/v24.20.0/bin:$PATH"
 # Only one Moli job at a time, they share the one browser.
 exec 9>~/photos/moli.lock; flock 9
 FROM=${FROM:-2016-03}

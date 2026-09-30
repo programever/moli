@@ -5,6 +5,8 @@
 #   ./monthly.sh 2026-09    a given month
 set -u
 cd ~/moli
+# systemd does not know the nvm node; use the same node as the shell.
+export PATH="$HOME/.nvm/versions/node/v24.20.0/bin:$PATH"
 # Only one Moli job at a time, they share the one browser.
 exec 9>~/photos/moli.lock; flock 9
 M=${1:-$(date -d "$(date +%Y-%m-01) -1 day" +%Y-%m)}

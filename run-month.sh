@@ -4,6 +4,8 @@
 #   ./run-month.sh 2016-03
 set -u
 cd ~/moli
+# systemd does not know the nvm node; use the same node as the shell.
+export PATH="$HOME/.nvm/versions/node/v24.20.0/bin:$PATH"
 M=${1:?month YYYY-MM}
 DATA=${MOLI_DATA:-$HOME/photos}
 MONTHS=(January February March April May June July August September October November December)
