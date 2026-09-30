@@ -57,7 +57,10 @@ so Iker can watch the videos on the phone.
 ## Music
 
 The tracks in `~/photos/music` are by Kevin MacLeod (incompetech.com),
-licensed under Creative Commons: By Attribution 4.0.
+licensed under Creative Commons: By Attribution 4.0. Only happy, upbeat tracks (Iker, 2026-09-30).
+Every video gets its own track: the picker takes a random track among the least used ones, and
+counts uses in `~/photos/music-used.json`. So no track repeats before all tracks were used once.
+To add music, drop mp3 files into `~/photos/music`.
 
 ## Tools the box needs
 
