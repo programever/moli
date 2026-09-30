@@ -102,10 +102,31 @@ async function upload(page, file, title) {
   return link;
 }
 
+// Delete a video for good: video page > Options (three dots) > Delete > tick > Delete forever.
+async function del(page, videoId) {
+  await page.goto(`https://studio.youtube.com/video/${videoId}/edit`, { waitUntil: 'domcontentloaded' });
+  await page.waitForTimeout(5000);
+  await page.locator('ytcp-icon-button[aria-label="Options"], ytcp-button[aria-label="Options"]').first().click();
+  await page.waitForTimeout(1500);
+  await page.locator('tp-yt-paper-item:has-text("Delete"), [role=menuitem]:has-text("Delete")').first().click();
+  await page.waitForTimeout(2000);
+  const dlg = page.locator('ytcp-confirmation-dialog').first();
+  const text = await dlg.innerText().catch(() => '');
+  if (!/Permanently delete/i.test(text)) throw new Error('delete window did not open');
+  let b = await dlg.locator('ytcp-checkbox-lit, #checkbox, tp-yt-paper-checkbox').first().boundingBox();
+  await page.mouse.click(b.x + b.width / 2, b.y + b.height / 2);
+  await page.waitForTimeout(800);
+  b = await dlg.locator('ytcp-button:has-text("Delete forever"), button:has-text("Delete forever")').first().boundingBox();
+  await page.mouse.click(b.x + b.width / 2, b.y + b.height / 2);
+  await page.waitForTimeout(4000);
+  console.log(`deleted video ${videoId}: ${text.split('\n').slice(1, 3).join(' ').trim()}`);
+}
+
 (async () => {
   const [cmd, file, title] = process.argv.slice(2);
-  if (cmd !== 'upload' || !file || !title) { console.log('use: node youtube.js upload <file.mp4> "<title>"'); process.exit(1); }
   const { page } = await connect();
-  await upload(page, file, title);
+  if (cmd === 'upload' && file && title) await upload(page, file, title);
+  else if (cmd === 'delete' && file) await del(page, file);
+  else { console.log('use: node youtube.js upload <file.mp4> "<title>" | delete <videoId>'); process.exit(1); }
   process.exit(0);
 })().catch((e) => { console.error('youtube upload failed:', e.message.split('\n')[0]); process.exit(1); });
