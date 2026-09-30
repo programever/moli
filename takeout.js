@@ -6,7 +6,6 @@
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
-const { execFileSync } = require('child_process');
 const { connect } = require('./lib/browser');
 
 const DATA = process.env.MOLI_DATA || path.join(os.homedir(), 'photos');
@@ -58,47 +57,36 @@ async function status(page) {
   console.log(t.slice(i, i + 900));
 }
 
-// Google gives one "Download" link per zip. We use the browser's cookies with curl,
-// because a 10 GB file must go straight to disk, not through memory.
-async function download(page, context) {
+// The manage page lists finished exports. Each export page has one "Download part N" link per zip.
+// Chromium saves the files in ~/Downloads. Google asks for the password again before the first
+// download; if that happens, Iker must type it on the noVNC screen, then run this command again.
+async function download(page) {
   await page.goto('https://takeout.google.com/manage', { waitUntil: 'domcontentloaded' });
   await page.waitForTimeout(3000);
-  const links = await page.locator('a[href*="takeout/download"], a:has-text("Download")').evaluateAll((as) =>
-    as.map((a) => a.href).filter((h) => h && h.includes('takeout')));
-  const unique = [...new Set(links)];
-  if (!unique.length) { console.log('no download links yet'); return; }
-  fs.mkdirSync(ZIPS, { recursive: true });
-  const cookies = await context.cookies(['https://takeout.google.com', 'https://accounts.google.com', 'https://google.com']);
-  const jar = path.join(ZIPS, 'cookies.txt');
-  fs.writeFileSync(jar, '# Netscape HTTP Cookie File\n' + cookies.map((c) =>
-    [c.domain, c.domain.startsWith('.') ? 'TRUE' : 'FALSE', c.path, c.secure ? 'TRUE' : 'FALSE', Math.floor(c.expires > 0 ? c.expires : 2e9), c.name, c.value].join('\t')).join('\n') + '\n', { mode: 0o600 });
-  let n = 0;
-  for (const url of unique) {
-    n++;
-    const out = path.join(ZIPS, `takeout-${new Date().toISOString().slice(0, 10)}-${String(n).padStart(3, '0')}.zip`);
-    if (fs.existsSync(out)) { console.log('have', out); continue; }
-    console.log('downloading', n, 'of', unique.length);
-    execFileSync('curl', ['-L', '-sS', '-b', jar, '-c', jar, '-o', out + '.part', url], { stdio: 'inherit' });
-    const fd = fs.openSync(out + '.part', 'r');
-    const head = Buffer.alloc(300);
-    fs.readSync(fd, head, 0, 300, 0);
-    fs.closeSync(fd);
-    if (head.toString('latin1', 0, 2) !== 'PK') {
-      const peek = head.toString('utf8').replace(/\s+/g, ' ');
-      throw new Error(`file ${n} is not a zip. Google probably asked to log in again. Start of file: ${peek}`);
+  const archives = await page.locator('a[href*="/manage/archive/"]').evaluateAll((as) => [...new Set(as.map((a) => a.href))]);
+  if (!archives.length) { console.log('no finished export yet'); return; }
+  await page.goto(archives[0], { waitUntil: 'domcontentloaded' });
+  await page.waitForTimeout(3000);
+  const parts = await page.locator('a[aria-label^="Download part"]').count();
+  if (!parts) { console.log('no download links on', archives[0]); return; }
+  for (let i = 0; i < parts; i++) {
+    await page.locator('a[aria-label^="Download part"]').nth(i).click({ noWaitAfter: true });
+    await page.waitForTimeout(4000);
+    if (page.url().includes('accounts.google.com')) {
+      console.log('PASSWORD NEEDED: Google asks Iker to type the password on the noVNC screen. After that, run "node takeout.js download" again.');
+      return;
     }
-    fs.renameSync(out + '.part', out);
-    console.log('saved', out);
+    console.log(`part ${i + 1} of ${parts} started, Chromium saves it in ~/Downloads`);
   }
-  fs.unlinkSync(jar);
+  console.log('when no *.crdownload file is left in ~/Downloads, move the zip files to ' + ZIPS);
 }
 
 (async () => {
   const [cmd, arg] = process.argv.slice(2);
-  const { page, context } = await connect();
+  const { page } = await connect();
   if (cmd === 'create' && /^\d{4}$/.test(arg || '')) await create(page, arg);
   else if (cmd === 'status') await status(page);
-  else if (cmd === 'download') await download(page, context);
+  else if (cmd === 'download') await download(page);
   else { console.log('use: node takeout.js create <year> | status | download'); process.exit(1); }
   process.exit(0);
 })().catch((e) => { console.error('takeout failed:', e.message); process.exit(1); });
