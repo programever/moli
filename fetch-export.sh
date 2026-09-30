@@ -30,8 +30,10 @@ for i in $(seq 1 1728); do
     break
   fi
   have_zip && break
-  # Iker may have typed the password: try the download again, quietly.
-  node takeout.js download >/dev/null 2>&1 || true
+  # Do not touch the browser while the password page is open; Iker may be typing.
+  # If the page moved somewhere else and still nothing downloads, ask for the download again.
+  url=$(node drive.js eval "location.href" 2>/dev/null || echo "")
+  case "$url" in *accounts.google.com*) ;; *) node takeout.js download >/dev/null 2>&1 || true ;; esac
   sleep 300
 done
 
