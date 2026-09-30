@@ -88,3 +88,10 @@ must be fixed.
   `moli-status.md` in the alpha repo, so Alpha can remind Iker when something is stuck.
 - `resume-downloads.js` presses Resume on downloads that stopped because the internet dropped.
 - Logs: `~/photos/monthly.log`, `~/photos/backfill.log`, `~/photos/work/<month>.log`.
+
+## Disk space
+
+The box has about 100 GB free. A year of photos is 3 to 13 GB as a zip and the same again unpacked.
+So: zips are deleted right after unpacking, the small clips are deleted after the join, and
+`backfill.sh` deletes a year's photos from `~/photos/library` when all its months are uploaded.
+The photos are still in Google Photos. Fetch at most two years at a time.
