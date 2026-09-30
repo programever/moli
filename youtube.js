@@ -86,11 +86,13 @@ async function upload(page, file, title) {
   for (let i = 0; i < 3; i++) { await d.locator('#next-button').click(); await page.waitForTimeout(2000); }
   await d.locator('tp-yt-paper-radio-button[name="PRIVATE"]').click();
   await page.waitForTimeout(800);
-  const link = ((await d.innerText()).match(/https:\/\/youtu\.be\/\S+/) || [])[0];
   // Wait for the upload itself to finish (up to 20 minutes) before pressing Save.
+  // The video link shows up in the dialog at some point during the upload; keep looking for it.
+  let link = null;
   for (let i = 0; i < 400; i++) {
     const t = await d.innerText();
-    if (!/Uploading \d+%/.test(t)) break;
+    link = link || (t.match(/https:\/\/youtu\.be\/\S+/) || [])[0];
+    if (link && !/Uploading \d+%/.test(t)) break;
     await page.waitForTimeout(3000);
   }
   await d.locator('#done-button').click();
