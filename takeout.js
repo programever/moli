@@ -65,10 +65,10 @@ async function download(page) {
   if (!archives.length) { console.log('no finished export yet'); return; }
   await page.goto(archives[0], { waitUntil: 'domcontentloaded' });
   await page.waitForTimeout(3000);
-  const parts = await page.locator('a[aria-label^="Download part"]').count();
+  const parts = await page.locator('a[aria-label="Download"], a[aria-label^="Download part"]').count();
   if (!parts) { console.log('no download links on', archives[0]); return; }
   for (let i = 0; i < parts; i++) {
-    await page.locator('a[aria-label^="Download part"]').nth(i).click({ noWaitAfter: true });
+    await page.locator('a[aria-label="Download"], a[aria-label^="Download part"]').nth(i).click({ noWaitAfter: true });
     await page.waitForTimeout(4000);
     if (page.url().includes('accounts.google.com')) {
       console.log('PASSWORD NEEDED: Google asks Iker to type the password on the noVNC screen. After that, run "node takeout.js download" again.');
