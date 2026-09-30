@@ -1,7 +1,7 @@
 # Moli
 
 Moli makes one short video for each month from Iker's Google Photos.
-It picks 30 photos and 3 videos at random from the month, adds music and
+It picks 30 photos and 5 videos at random from the month, adds music and
 transitions, and saves a wide (landscape) video.
 
 Moli is Alpha's project. Alpha writes the code and runs it on the home box `alpha`.
@@ -15,7 +15,7 @@ Moli is Alpha's project. Alpha writes the code and runs it on the home box `alph
    the phone over Tailscale when a login is needed.
 2. **Unpack.** The zip files are unpacked into `~/photos/library`.
 3. **Pick.** `lib/pick.js` reads the date of every photo and video and picks
-   30 photos and up to 3 videos for a month. iPhone "live photo" clips and
+   30 photos and up to 5 videos for a month. iPhone "live photo" clips and
    screenshots are skipped. If a photo has an edited copy, the edited copy is used.
    The pick is saved in `~/photos/work/<month>/pick.json`, so the same month gives
    the same video again unless you ask for a new pick.
