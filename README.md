@@ -57,3 +57,12 @@ so Iker can watch the videos on the phone.
 
 The tracks in `~/photos/music` are by Kevin MacLeod (incompetech.com),
 licensed under Creative Commons: By Attribution 4.0.
+
+## Tools the box needs
+
+```
+sudo apt-get install ffmpeg imagemagick libheif-plugin-libde265 libimage-exiftool-perl unzip x11vnc novnc websockify
+```
+
+`libheif-plugin-libde265` is the decoder for iPhone HEIC photos. Without it,
+ImageMagick says "Unsupported codec" and every HEIC photo is skipped.
