@@ -129,6 +129,7 @@ async function del(page, videoId) {
   const { page } = await connect();
   if (cmd === 'upload' && file && title) await upload(page, file, title);
   else if (cmd === 'delete' && file) await del(page, file);
-  else { console.log('use: node youtube.js upload <file.mp4> "<title>" | delete <videoId>'); process.exit(1); }
+  else if (cmd === 'playlist' && file && title) await ensureInPlaylist(page, file, title);
+  else { console.log('use: node youtube.js upload <file.mp4> "<title>" | delete <videoId> | playlist <videoId> "<title>"'); process.exit(1); }
   process.exit(0);
 })().catch((e) => { console.error('youtube upload failed:', e.message.split('\n')[0]); process.exit(1); });
