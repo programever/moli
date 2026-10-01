@@ -10,6 +10,10 @@ export PATH="$HOME/.nvm/versions/node/v24.20.0/bin:$PATH"
 # Only one Moli job at a time, they share the one browser.
 exec 9>~/photos/moli.lock; flock 9
 M=${1:-$(date -d "$(date +%Y-%m-01) -1 day" +%Y-%m)}
+# While the big catch-up job (all months since 2016) is still running, it will also do this month.
+if systemctl --user is-active --quiet moli-backfill-all.service; then
+  echo "$(date -Is) backfill-all is running, it will do $M; nothing to do" >> ~/photos/monthly.log; exit 0
+fi
 Y=${M%-*}
 exec >> ~/photos/monthly.log 2>&1
 echo "=== $(date -Is) monthly run for $M"
