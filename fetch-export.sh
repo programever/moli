@@ -9,13 +9,16 @@ cd ~/moli
 export PATH="$HOME/.nvm/versions/node/v24.20.0/bin:$PATH"
 DATA=${MOLI_DATA:-$HOME/photos}
 LABEL=${1:-export}
+# The browser is shared with the upload jobs. Hold the lock only while touching it, so an upload
+# that is running (it holds the lock for the whole month) is never interrupted.
+browser() { flock "$DATA/moli.lock" "$@"; }
 
 # Files in the folders where Chromium puts downloads. Extra find options limit the list.
 files() { for d in "$HOME/Downloads" /tmp/playwright-artifacts-*; do [ -d "$d" ] && find "$d" -maxdepth 1 -type f "$@"; done; }
 have_download() { [ -n "$(files -name '*.crdownload')" ]; }
 have_zip() { for f in $(files ! -name '*.crdownload'); do [ "$(head -c 2 "$f")" = "PK" ] && return 0; done; return 1; }
 
-out=$(node takeout.js download 2>&1); echo "$out"
+out=$(browser node takeout.js download 2>&1); echo "$out"
 if echo "$out" | grep -q "PASSWORD NEEDED"; then
   node status.js open "Google asks for Iker's password before Moli can download the photos ($LABEL). Iker: open http://100.115.99.53:6080/vnc.html with Tailscale on, press Connect, type the password, press Next. The download then starts by itself." >/dev/null
 fi
@@ -23,16 +26,16 @@ fi
 # Wait until every part is downloaded. Check every 5 minutes.
 for i in $(seq 1 1728); do
   # Do not touch the browser while the password page is open; Iker may be typing.
-  url=$(node drive.js eval "location.href" 2>/dev/null || echo "")
+  url=$(browser node drive.js eval "location.href" 2>/dev/null || echo "")
   case "$url" in *accounts.google.com*) sleep 300; continue ;; esac
   # Ask for every part that has no file on disk yet. After Iker's password Google starts only
   # part 1 by itself; the other parts need a click. Parts already started are skipped.
-  node takeout.js download >/dev/null 2>&1 || true
+  browser node takeout.js download >/dev/null 2>&1 || true
   if have_download; then
     while have_download; do
       sleep 60
       # Chromium stops for good when the internet drops; press Resume on every stopped item.
-      node resume-downloads.js >/dev/null 2>&1 || true
+      browser node resume-downloads.js >/dev/null 2>&1 || true
     done
     continue   # look again: maybe a part is still missing
   fi

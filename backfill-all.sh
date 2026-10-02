@@ -27,7 +27,10 @@ do_years() {  # do_years 2017 2018
     sleep 120
     while node takeout.js status 2>&1 | grep -q "in progress"; do sleep 300; done
     node status.js progress "downloading Photos from ${need[*]}" >/dev/null
-    ./fetch-export.sh "${need[*]}" || return 1
+    flock -u 9   # fetch-export.sh takes the lock itself, only while it touches the browser
+    ./fetch-export.sh "${need[*]}"; local rc=$?
+    flock 9
+    [ $rc -eq 0 ] || return 1
   fi
   echo "=== $(date -Is) months of $*"
   flock -u 9   # backfill.sh takes the lock itself
