@@ -123,7 +123,8 @@ async function del(page, videoId) {
   let b = await dlg.locator('ytcp-checkbox-lit, #checkbox, tp-yt-paper-checkbox').first().boundingBox();
   await page.mouse.click(b.x + b.width / 2, b.y + b.height / 2);
   await page.waitForTimeout(800);
-  b = await dlg.locator('ytcp-button:has-text("Delete forever"), button:has-text("Delete forever")').first().boundingBox();
+  // A finished video says "Delete forever", a draft says "Delete draft video".
+  b = await dlg.locator('ytcp-button:has-text("Delete forever"), button:has-text("Delete forever"), ytcp-button:has-text("Delete draft video"), button:has-text("Delete draft video")').first().boundingBox();
   await page.mouse.click(b.x + b.width / 2, b.y + b.height / 2);
   await page.waitForTimeout(4000);
   console.log(`deleted video ${videoId}: ${text.split('\n').slice(1, 3).join(' ').trim()}`);
