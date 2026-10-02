@@ -20,21 +20,23 @@ if echo "$out" | grep -q "PASSWORD NEEDED"; then
   node status.js open "Google asks for Iker's password before Moli can download the photos ($LABEL). Iker: open http://100.115.99.53:6080/vnc.html with Tailscale on, press Connect, type the password, press Next. The download then starts by itself." >/dev/null
 fi
 
-# Wait until the download is running, then until it is finished. Check every 5 minutes.
+# Wait until every part is downloaded. Check every 5 minutes.
 for i in $(seq 1 1728); do
+  # Do not touch the browser while the password page is open; Iker may be typing.
+  url=$(node drive.js eval "location.href" 2>/dev/null || echo "")
+  case "$url" in *accounts.google.com*) sleep 300; continue ;; esac
+  # Ask for every part that has no file on disk yet. After Iker's password Google starts only
+  # part 1 by itself; the other parts need a click. Parts already started are skipped.
+  node takeout.js download >/dev/null 2>&1 || true
   if have_download; then
     while have_download; do
       sleep 60
       # Chromium stops for good when the internet drops; press Resume on every stopped item.
       node resume-downloads.js >/dev/null 2>&1 || true
     done
-    break
+    continue   # look again: maybe a part is still missing
   fi
   have_zip && break
-  # Do not touch the browser while the password page is open; Iker may be typing.
-  # If the page moved somewhere else and still nothing downloads, ask for the download again.
-  url=$(node drive.js eval "location.href" 2>/dev/null || echo "")
-  case "$url" in *accounts.google.com*) ;; *) node takeout.js download >/dev/null 2>&1 || true ;; esac
   sleep 300
 done
 

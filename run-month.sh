@@ -13,7 +13,10 @@ Y=${M%-*}; N=$((10#${M#*-}))
 TITLE="${MONTHS[$((N-1))]} $Y"
 
 node status.js progress "making and uploading $TITLE" >/dev/null
-if ! node moli.js make "$M" > "$DATA/work/$M.log" 2>&1; then
+# A video that was already made is reused (for example when only the upload failed last time).
+if [ -s "$DATA/out/$M.mp4" ]; then
+  echo "$M: video already made, upload only" | tee -a "$DATA/work/$M.log"
+elif ! node moli.js make "$M" > "$DATA/work/$M.log" 2>&1; then
   if grep -q "nothing to do" "$DATA/work/$M.log"; then
     node status.js fail "$M" "no photos or videos found for this month in the library" >/dev/null
   else
@@ -23,7 +26,11 @@ if ! node moli.js make "$M" > "$DATA/work/$M.log" 2>&1; then
 fi
 link=$(node youtube.js upload "$DATA/out/$M.mp4" "$TITLE" 2>&1 | tee -a "$DATA/work/$M.log" | grep -o 'https://youtu.be/[^ ]*' | head -1)
 if [ -z "$link" ]; then
-  node status.js fail "$M" "video was made but the YouTube upload failed, see ~/photos/work/$M.log; try: node youtube.js upload $DATA/out/$M.mp4 \"$TITLE\"" >/dev/null
+  if grep -q "DAILY LIMIT" "$DATA/work/$M.log"; then
+    node status.js fail "$M" "video is made, but YouTube said 'Daily upload limit reached'. Run the month again after 24 hours, or Iker does the one-time verification in YouTube Studio so the limit goes away" >/dev/null
+  else
+    node status.js fail "$M" "video was made but the YouTube upload failed, see ~/photos/work/$M.log; try: node youtube.js upload $DATA/out/$M.mp4 \"$TITLE\"" >/dev/null
+  fi
   echo "$M: upload failed"; exit 1
 fi
 node status.js done "$M" "$link" >/dev/null

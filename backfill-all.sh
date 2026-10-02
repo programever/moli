@@ -11,7 +11,8 @@ LOG=~/photos/backfill-all.log
 exec >> "$LOG" 2>&1
 LIB="$HOME/photos/library/Takeout/Google Photos"
 
-have_year() { [ -d "$LIB/Photos from $1" ]; }
+# The photos are on the box, or the videos of that year were already made (photos deleted after).
+have_year() { [ -d "$LIB/Photos from $1" ] || ls ~/photos/out/$1-*.mp4 >/dev/null 2>&1; }
 
 do_years() {  # do_years 2017 2018
   local need=()

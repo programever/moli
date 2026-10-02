@@ -57,9 +57,29 @@ async function status(page) {
   console.log(t.slice(i, i + 900));
 }
 
+// Files already on disk from this export: running downloads (*.crdownload) and finished zips.
+// Google starts part 1 by itself after Iker types the password, so this tells which parts are
+// already started and which still need a click.
+function filesOnDisk() {
+  const dirs = [path.join(os.homedir(), 'Downloads'), ...fs.readdirSync('/tmp').filter((d) => d.startsWith('playwright-artifacts-')).map((d) => path.join('/tmp', d))];
+  let n = 0;
+  for (const d of dirs) {
+    if (!fs.existsSync(d)) continue;
+    for (const f of fs.readdirSync(d)) {
+      const file = path.join(d, f);
+      if (!fs.statSync(file).isFile()) continue;
+      if (f.endsWith('.crdownload')) { n++; continue; }
+      const fd = fs.openSync(file, 'r'); const b = Buffer.alloc(2); fs.readSync(fd, b, 0, 2, 0); fs.closeSync(fd);
+      if (b.toString() === 'PK') n++;
+    }
+  }
+  return n;
+}
+
 // The manage page lists finished exports. Each export page has one "Download part N" link per zip.
 // Chromium saves the files in ~/Downloads. Google asks for the password again before the first
 // download; if that happens, Iker must type it on the noVNC screen, then run this command again.
+// Parts that already have a file on disk are skipped, so this is safe to run more than once.
 async function download(page) {
   await page.goto('https://takeout.google.com/manage', { waitUntil: 'domcontentloaded' });
   await page.waitForTimeout(3000);
@@ -69,7 +89,9 @@ async function download(page) {
   await page.waitForTimeout(3000);
   const parts = await page.locator('a[aria-label="Download"], a[aria-label^="Download part"]').count();
   if (!parts) { console.log('no download links on', archives[0]); return; }
-  for (let i = 0; i < parts; i++) {
+  const started = filesOnDisk();
+  if (started >= parts) { console.log(`all ${parts} part(s) already started`); return; }
+  for (let i = started; i < parts; i++) {
     await page.locator('a[aria-label="Download"], a[aria-label^="Download part"]').nth(i).click({ noWaitAfter: true });
     await page.waitForTimeout(4000);
     if (page.url().includes('accounts.google.com')) {

@@ -76,6 +76,11 @@ async function upload(page, file, title) {
   const d = page.locator('ytcp-uploads-dialog');
   await d.locator('#title-textarea #textbox, ytcp-video-title #textbox').first().waitFor({ timeout: 60000 });
   await page.waitForTimeout(3000);
+  // YouTube allows only some uploads per day on a channel that never did its one-time check.
+  if ((await d.innerText()).includes('Daily upload limit reached')) {
+    await d.locator('ytcp-icon-button[aria-label="Close"]').first().click().catch(() => {});
+    throw new Error('DAILY LIMIT: YouTube says "Daily upload limit reached". Wait 24 hours, or Iker does the one-time verification in YouTube Studio.');
+  }
   const box = d.locator('#title-textarea #textbox, ytcp-video-title #textbox').first();
   await box.click();
   await page.keyboard.press('Control+A');

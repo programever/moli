@@ -85,7 +85,12 @@ must be fixed.
   It asks Takeout for the year, downloads, unpacks, makes the video of the month that just ended,
   and uploads it as private into the playlist "Our Memory".
 - `fetch-export.sh <label>` downloads and unpacks the newest finished export. If Google asks for
-  Iker's password, it writes that into Alpha's memory and waits up to 6 days for Iker.
+  Iker's password, it writes that into Alpha's memory and waits up to 6 days for Iker. After the
+  password Google starts only part 1 by itself; the script asks for the other parts, so the whole
+  export arrives.
+- YouTube allows only about 10 uploads per day until the channel does its one-time verification.
+  When the limit is hit, the month is marked failed with a clear note; run it again later. A month
+  whose video is already in `~/photos/out` is not rebuilt, only uploaded.
 - `run-month.sh YYYY-MM` makes and uploads one month. `backfill.sh 2016 2017 ...` does every month
   of those years, oldest first, skipping months already uploaded.
 - `status.js` keeps `~/photos/status.json` and renders it into Alpha's memory file

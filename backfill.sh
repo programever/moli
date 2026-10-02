@@ -24,7 +24,7 @@ for Y in "$@"; do
   done
   # All months of this year are done: delete the year's photos from the box to save disk space.
   # They are still in Google Photos. The videos stay in ~/photos/out.
-  if [ "$Y" -lt "$(date +%Y)" ] && ! node -e "const s=require('$HOME/photos/status.json'); process.exit(Object.keys(s.failed).some(m=>m.startsWith('$Y-'))?1:0)"; then
+  if [ "$Y" -lt "$(date +%Y)" ] && node -e "const s=require('$HOME/photos/status.json'); process.exit(Object.keys(s.failed).some(m=>m.startsWith('$Y-'))?1:0)"; then
     rm -rf "$HOME/photos/library/Takeout/Google Photos/Photos from $Y" && echo "deleted photos of $Y from the box"
   fi
 done
