@@ -76,11 +76,7 @@ async function upload(page, file, title) {
   const d = page.locator('ytcp-uploads-dialog');
   await d.locator('#title-textarea #textbox, ytcp-video-title #textbox').first().waitFor({ timeout: 60000 });
   await page.waitForTimeout(3000);
-  // YouTube allows only some uploads per day on a channel that never did its one-time check.
-  if ((await d.innerText()).includes('Daily upload limit reached')) {
-    await d.locator('ytcp-icon-button[aria-label="Close"]').first().click().catch(() => {});
-    throw new Error('DAILY LIMIT: YouTube says "Daily upload limit reached". Wait 24 hours, or Iker does the one-time verification in YouTube Studio.');
-  }
+  try {
   const box = d.locator('#title-textarea #textbox, ytcp-video-title #textbox').first();
   await box.click();
   await page.keyboard.press('Control+A');
@@ -107,6 +103,16 @@ async function upload(page, file, title) {
   console.log(`uploaded as private: ${title} ${link || '(link not seen)'}`);
   if (link) await ensureInPlaylist(page, link.split('/').pop(), title);
   return link;
+  } catch (e) {
+    // YouTube allows only some uploads per day on a channel that never did its one-time check.
+    // The red note shows up a while after the file is chosen, so look for it when a step fails.
+    const t = await d.innerText().catch(() => '');
+    if (t.includes('Daily upload limit reached')) {
+      await d.locator('ytcp-icon-button[aria-label="Close"]').first().click().catch(() => {});
+      throw new Error('DAILY LIMIT: YouTube says "Daily upload limit reached". Wait 24 hours, or Iker does the one-time verification in YouTube Studio.');
+    }
+    throw e;
+  }
 }
 
 // Delete a video for good: video page > Options (three dots) > Delete > tick > Delete forever.
