@@ -56,9 +56,10 @@ so Iker can watch the videos on the phone.
 
 ## Music
 
-The tracks in `~/photos/music` are by Kevin MacLeod (incompetech.com),
-licensed under Creative Commons: By Attribution 4.0. Slow and calm tracks (Iker, 2026-09-30; he
-first asked for happy music, listened, and chose calm instead. The happy set is in `~/photos/music-happy`).
+The tracks in `~/photos/music` are free funky, upbeat tracks from Pixabay (fetched by
+`pixabay.js`). Iker chose funky on 2026-10-02 (on 2026-09-30 he had first chosen slow and calm).
+The calm Kevin MacLeod set (Creative Commons: By Attribution 4.0) is kept in `~/photos/music-calm`,
+the happy MacLeod set in `~/photos/music-happy`.
 Every video gets its own track: the picker takes a random track among the least used ones, and
 counts uses in `~/photos/music-used.json`. So no track repeats before all tracks were used once.
 To add music, drop mp3 files into `~/photos/music`.
