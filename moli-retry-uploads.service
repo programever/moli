@@ -1,0 +1,8 @@
+[Unit]
+Description=Moli: upload again the months whose upload failed (about 10 per day are allowed)
+
+[Service]
+Type=oneshot
+ExecStart=/home/alpha/moli/retry-uploads.sh
+StandardOutput=append:/home/alpha/photos/retry-uploads.log
+StandardError=append:/home/alpha/photos/retry-uploads.log

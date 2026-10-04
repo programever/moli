@@ -1,0 +1,11 @@
+[Unit]
+Description=Moli: retry failed uploads every day at 11:30 Vietnam time
+
+[Timer]
+OnCalendar=*-*-* 11:30:00 Asia/Ho_Chi_Minh
+Persistent=true
+AccuracySec=1min
+Unit=moli-retry-uploads.service
+
+[Install]
+WantedBy=timers.target
