@@ -27,7 +27,7 @@ fi
 link=$(node youtube.js upload "$DATA/out/$M.mp4" "$TITLE" 2>&1 | tee -a "$DATA/work/$M.log" | grep -o 'https://youtu.be/[^ ]*' | head -1)
 if [ -z "$link" ]; then
   if grep -q "DAILY LIMIT" "$DATA/work/$M.log"; then
-    node status.js fail "$M" "video is made, but YouTube said 'Daily upload limit reached'. Run the month again after 24 hours, or Iker does the one-time verification in YouTube Studio so the limit goes away" >/dev/null
+    node status.js fail "$M" "video is made, but YouTube said 'Daily upload limit reached' (about 10 uploads per day). The retry run at 04:30 UTC uploads it the next day, no action needed" >/dev/null
   else
     node status.js fail "$M" "video was made but the YouTube upload failed, see ~/photos/work/$M.log; try: node youtube.js upload $DATA/out/$M.mp4 \"$TITLE\"" >/dev/null
   fi

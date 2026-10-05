@@ -104,12 +104,12 @@ async function upload(page, file, title) {
   if (link) await ensureInPlaylist(page, link.split('/').pop(), title);
   return link;
   } catch (e) {
-    // YouTube allows only some uploads per day on a channel that never did its one-time check.
+    // YouTube allows only about 10 uploads per day on this channel (it is verified; the limit stays).
     // The red note shows up a while after the file is chosen, so look for it when a step fails.
     const t = await d.innerText().catch(() => '');
     if (t.includes('Daily upload limit reached')) {
       await d.locator('ytcp-icon-button[aria-label="Close"]').first().click().catch(() => {});
-      throw new Error('DAILY LIMIT: YouTube says "Daily upload limit reached". Wait 24 hours, or Iker does the one-time verification in YouTube Studio.');
+      throw new Error('DAILY LIMIT: YouTube says "Daily upload limit reached". The channel can upload about 10 videos per day; the retry run uploads the rest the next day.');
     }
     throw e;
   }

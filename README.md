@@ -89,7 +89,7 @@ must be fixed.
   Iker's password, it writes that into Alpha's memory and waits up to 6 days for Iker. After the
   password Google starts only part 1 by itself; the script asks for the other parts, so the whole
   export arrives.
-- YouTube allows only about 10 uploads per day until the channel does its one-time verification.
+- YouTube allows only about 10 uploads per day on this channel (checked 2026-10-05: the channel is verified, the limit stays).
   When the limit is hit, the month is marked failed with a clear note; run it again later. A month
   whose video is already in `~/photos/out` is not rebuilt, only uploaded.
 - `run-month.sh YYYY-MM` makes and uploads one month. `backfill.sh 2016 2017 ...` does every month
