@@ -2,7 +2,7 @@
 // Drive Google Takeout in the logged-in browser.
 //   node takeout.js create <year> [more years]   ask Google to pack "Photos from <year>" (zip files, 10 GB each)
 //   node takeout.js status           print what the Takeout manage page says
-//   node takeout.js download         download all finished zip files to ~/photos/takeout
+//   node takeout.js download [N]     start the downloads of export N on the manage page (0 = newest)
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
@@ -76,29 +76,53 @@ function filesOnDisk() {
   return n;
 }
 
-// The manage page lists finished exports. Each export page has one "Download part N" link per zip.
-// Chromium saves the files in ~/Downloads. Google asks for the password again before the first
-// download; if that happens, Iker must type it on the noVNC screen, then run this command again.
-// Parts that already have a file on disk are skipped, so this is safe to run more than once.
-async function download(page) {
+// The manage page lists finished exports, newest first; `which` picks one (0 = newest).
+// Each export page has one "Download part N of M" link per zip. Chromium saves the files in
+// ~/Downloads. Google asks for the password again before the first download; if that happens,
+// Iker must type it on the noVNC screen, then this command runs again (fetch-export.sh does that).
+//
+// Which parts still need a click? Two things are known: how many files of this export are on
+// disk (running downloads and finished zips), and which links this code already clicked
+// (remembered in ~/photos/takeout/started.json, so the 5-minute loop never starts a part twice).
+// Google usually hides the link of a part that was downloaded, but not always, so the links on
+// the page alone are not trusted. On 2026-10-05 the old code compared the number of files on
+// disk with the number of links left on the page and skipped part 2 of 3 of the 2023-2024 export.
+const STARTED = path.join(ZIPS, 'started.json');
+const LINKS = 'a[aria-label="Download"], a[aria-label^="Download part"]';
+
+function loadStarted() { try { return JSON.parse(fs.readFileSync(STARTED, 'utf8')); } catch { return {}; } }
+function saveStarted(m) { fs.mkdirSync(ZIPS, { recursive: true }); fs.writeFileSync(STARTED, JSON.stringify(m, null, 1)); }
+
+async function download(page, which = 0) {
   await page.goto('https://takeout.google.com/manage', { waitUntil: 'domcontentloaded' });
   await page.waitForTimeout(3000);
   const archives = await page.locator('a[href*="/manage/archive/"]').evaluateAll((as) => [...new Set(as.map((a) => a.href))]);
   if (!archives.length) { console.log('no finished export yet'); return; }
-  await page.goto(archives[0], { waitUntil: 'domcontentloaded' });
+  const archive = archives[which] || archives[0];
+  const id = archive.split('/').pop();
+  await page.goto(archive, { waitUntil: 'domcontentloaded' });
   await page.waitForTimeout(3000);
-  const parts = await page.locator('a[aria-label="Download"], a[aria-label^="Download part"]').count();
-  if (!parts) { console.log('no download links on', archives[0]); return; }
-  const started = filesOnDisk();
-  if (started >= parts) { console.log(`all ${parts} part(s) already started`); return; }
-  for (let i = started; i < parts; i++) {
-    await page.locator('a[aria-label="Download"], a[aria-label^="Download part"]').nth(i).click({ noWaitAfter: true });
+  const labels = await page.locator(LINKS).evaluateAll((as) => as.map((a) => a.getAttribute('aria-label')));
+  if (!labels.length) { console.log('no download links on', archive, '(every part was downloaded already)'); return; }
+  const total = Math.max(1, ...labels.map((l) => Number((l.match(/of (\d+)/) || [])[1] || 1)));
+  const started = loadStarted();
+  const onDisk = filesOnDisk();
+  if (onDisk >= total) { console.log(`all ${total} part(s) already started`); return; }
+  let needed = total - onDisk;
+  for (const label of labels) {
+    if (needed <= 0) break;
+    const key = `${id} ${label}`;
+    if (started[key]) { console.log(`${label}: already started earlier, skipped`); continue; }
+    await page.locator(`a[aria-label="${label}"]`).first().click({ noWaitAfter: true });
     await page.waitForTimeout(4000);
+    // Google starts this part by itself once Iker has typed the password, so remember it now.
+    started[key] = new Date().toISOString(); saveStarted(started);
     if (page.url().includes('accounts.google.com')) {
       console.log('PASSWORD NEEDED: Google asks Iker to type the password on the noVNC screen. After that, run "node takeout.js download" again.');
       return;
     }
-    console.log(`part ${i + 1} of ${parts} started, Chromium saves it in ~/Downloads`);
+    needed--;
+    console.log(`${label} started, Chromium saves it in ~/Downloads`);
   }
   console.log('when no *.crdownload file is left in ~/Downloads, move the zip files to ' + ZIPS);
 }
@@ -109,7 +133,7 @@ async function download(page) {
   const { page } = await connect();
   if (cmd === 'create' && args.length && args.every((y) => /^\d{4}$/.test(y))) await create(page, args);
   else if (cmd === 'status') await status(page);
-  else if (cmd === 'download') await download(page);
+  else if (cmd === 'download') await download(page, Number(arg) || 0);
   else { console.log('use: node takeout.js create <year> | status | download'); process.exit(1); }
   process.exit(0);
 })().catch((e) => { console.error('takeout failed:', e.message); process.exit(1); });

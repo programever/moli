@@ -30,7 +30,11 @@ for i in $(seq 1 1728); do
   case "$url" in *accounts.google.com*) sleep 300; continue ;; esac
   # Ask for every part that has no file on disk yet. After Iker's password Google starts only
   # part 1 by itself; the other parts need a click. Parts already started are skipped.
-  browser node takeout.js download >/dev/null 2>&1 || true
+  out=$(browser node takeout.js download 2>&1 || true)
+  if echo "$out" | grep -q "PASSWORD NEEDED"; then
+    node status.js open "Google asks for Iker's password before Moli can download the photos ($LABEL). Iker: open http://100.115.99.53:6080/vnc.html with Tailscale on, press Connect, type the password, press Next. The download then starts by itself." >/dev/null
+    sleep 300; continue
+  fi
   if have_download; then
     while have_download; do
       sleep 60
@@ -39,7 +43,9 @@ for i in $(seq 1 1728); do
     done
     continue   # look again: maybe a part is still missing
   fi
-  have_zip && break
+  # Done only when takeout.js says every part was started and the zips are here. (On 2026-10-05
+  # this stopped after part 1 while parts were still missing, so the check is stricter now.)
+  if echo "$out" | grep -qE "already started|no download links" && have_zip; then break; fi
   sleep 300
 done
 
