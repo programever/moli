@@ -2,7 +2,7 @@
 // Drive Google Takeout in the logged-in browser.
 //   node takeout.js create <year> [more years]   ask Google to pack "Photos from <year>" (zip files, 10 GB each)
 //   node takeout.js status           print what the Takeout manage page says
-//   node takeout.js download [N]     start the downloads of export N on the manage page (0 = newest)
+//   node takeout.js download [N|id]  start the downloads of export N on the manage page (0 = newest) or of the export whose id contains <id>
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
@@ -76,7 +76,8 @@ function filesOnDisk() {
   return n;
 }
 
-// The manage page lists finished exports, newest first; `which` picks one (0 = newest).
+// The manage page lists finished exports, newest first; `which` picks one: a number (0 = newest)
+// or a piece of the export's id from its address, which is safer when new exports appear.
 // Each export page has one "Download part N of M" link per zip. Chromium saves the files in
 // ~/Downloads. Google asks for the password again before the first download; if that happens,
 // Iker must type it on the noVNC screen, then this command runs again (fetch-export.sh does that).
@@ -98,7 +99,7 @@ async function download(page, which = 0) {
   await page.waitForTimeout(3000);
   const archives = await page.locator('a[href*="/manage/archive/"]').evaluateAll((as) => [...new Set(as.map((a) => a.href))]);
   if (!archives.length) { console.log('no finished export yet'); return; }
-  const archive = archives[which] || archives[0];
+  const archive = (typeof which === 'string' ? archives.find((a) => a.includes(which)) : archives[which]) || archives[0];
   const id = archive.split('/').pop();
   await page.goto(archive, { waitUntil: 'domcontentloaded' });
   await page.waitForTimeout(3000);
@@ -133,7 +134,7 @@ async function download(page, which = 0) {
   const { page } = await connect();
   if (cmd === 'create' && args.length && args.every((y) => /^\d{4}$/.test(y))) await create(page, args);
   else if (cmd === 'status') await status(page);
-  else if (cmd === 'download') await download(page, Number(arg) || 0);
+  else if (cmd === 'download') await download(page, arg && !/^\d+$/.test(arg) ? arg : Number(arg) || 0);
   else { console.log('use: node takeout.js create <year> | status | download'); process.exit(1); }
   process.exit(0);
 })().catch((e) => { console.error('takeout failed:', e.message); process.exit(1); });
