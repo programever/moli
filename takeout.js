@@ -108,6 +108,13 @@ async function download(page, which = 0) {
   const total = Math.max(1, ...labels.map((l) => Number((l.match(/of (\d+)/) || [])[1] || 1)));
   const started = loadStarted();
   const onDisk = filesOnDisk();
+  // A part clicked just before Google asked for the password is only "pending": Google starts it
+  // by itself once Iker has typed the password. If a new file has appeared on disk since that
+  // click, the part is running. If not, forget the click, so the part is clicked again below.
+  for (const [key, v] of Object.entries(started)) {
+    if (v && v.pending) { if (onDisk > v.onDisk) started[key] = v.time; else delete started[key]; }
+  }
+  saveStarted(started);
   if (onDisk >= total) { console.log(`all ${total} part(s) already started`); return; }
   let needed = total - onDisk;
   for (const label of labels) {
@@ -116,12 +123,12 @@ async function download(page, which = 0) {
     if (started[key]) { console.log(`${label}: already started earlier, skipped`); continue; }
     await page.locator(`a[aria-label="${label}"]`).first().click({ noWaitAfter: true });
     await page.waitForTimeout(4000);
-    // Google starts this part by itself once Iker has typed the password, so remember it now.
-    started[key] = new Date().toISOString(); saveStarted(started);
     if (page.url().includes('accounts.google.com')) {
+      started[key] = { pending: true, onDisk, time: new Date().toISOString() }; saveStarted(started);
       console.log('PASSWORD NEEDED: Google asks Iker to type the password on the noVNC screen. After that, run "node takeout.js download" again.');
       return;
     }
+    started[key] = new Date().toISOString(); saveStarted(started);
     needed--;
     console.log(`${label} started, Chromium saves it in ~/Downloads`);
   }
