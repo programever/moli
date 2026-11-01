@@ -27,5 +27,10 @@ fi
 sleep 120
 while node takeout.js status 2>&1 | grep -q "in progress"; do sleep 300; done
 node status.js progress "monthly run for $M: downloading the photos" >/dev/null
-./fetch-export.sh "$M" || exit 1
+# fetch-export.sh takes the lock itself, only while it touches the browser. If this script kept the lock
+# here, fetch-export.sh would wait for it for ever (that happened on 2026-11-01).
+flock -u 9
+./fetch-export.sh "$M"; rc=$?
+flock 9
+[ $rc -eq 0 ] || exit 1
 ./run-month.sh "$M"
