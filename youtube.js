@@ -8,37 +8,36 @@ const { connect } = require('./lib/browser');
 
 const CHANNEL = 'UCvRJxeC70u_WWcBEeF7nBQA';
 const PLAYLIST = 'Our Memory'; // Iker, 2026-09-30: every upload goes into this playlist
-const PLAYLIST_URL = 'https://www.youtube.com/playlist?list=PLWJ9cw331A7M';
 
 // Check on the playlist page that the video is really inside. If not, add it on the video's edit
 // page: Playlists > tick > Done > Save. That page needs real mouse clicks at the right position.
 async function ensureInPlaylist(page, videoId, title) {
-  const listed = async () => {
-    await page.goto(PLAYLIST_URL, { waitUntil: 'domcontentloaded' });
-    await page.waitForTimeout(4000);
-    const titles = await page.locator('ytd-playlist-video-renderer #video-title').allInnerTexts();
-    return titles.some((t) => t.trim() === title);
+  // The playlist page shows only the first 100 videos, so it cannot tell if video 101 and later are inside
+  // (found 2026-11-03, with 128 videos). The tick in the video's own playlist window is the truth.
+  const openDialog = async () => {
+    await page.goto(`https://studio.youtube.com/video/${videoId}/edit`, { waitUntil: 'domcontentloaded' });
+    await page.waitForTimeout(5000);
+    await page.locator('ytcp-video-metadata-playlists ytcp-text-dropdown-trigger').first().click();
+    await page.waitForTimeout(2500);
+    const popup = page.locator('ytcp-playlist-dialog');
+    const cb = popup.locator('li.row', { hasText: PLAYLIST }).locator('ytcp-checkbox, #checkbox').first();
+    return { popup, cb, ticked: (await cb.getAttribute('aria-checked')) === 'true' };
   };
-  if (await listed()) { console.log(`in playlist: ${PLAYLIST}`); return; }
-  await page.goto(`https://studio.youtube.com/video/${videoId}/edit`, { waitUntil: 'domcontentloaded' });
-  await page.waitForTimeout(5000);
-  await page.locator('ytcp-video-metadata-playlists ytcp-text-dropdown-trigger').first().click();
-  await page.waitForTimeout(2500);
-  const popup = page.locator('ytcp-playlist-dialog');
-  const cb = popup.locator('li.row', { hasText: PLAYLIST }).locator('ytcp-checkbox, #checkbox').first();
-  if ((await cb.getAttribute('aria-checked')) !== 'true') {
-    const b = await cb.boundingBox();
-    await page.mouse.click(b.x + b.width / 2, b.y + b.height / 2);
-    await page.waitForTimeout(800);
-  }
-  let b = await popup.locator('button', { hasText: 'Done' }).first().boundingBox();
+  let { popup, cb, ticked } = await openDialog();
+  if (ticked) { await page.keyboard.press('Escape'); console.log(`in playlist: ${PLAYLIST} (${title})`); return; }
+  let b = await cb.boundingBox();
+  await page.mouse.click(b.x + b.width / 2, b.y + b.height / 2);
+  await page.waitForTimeout(800);
+  b = await popup.locator('button', { hasText: 'Done' }).first().boundingBox();
   await page.mouse.click(b.x + b.width / 2, b.y + b.height / 2);
   await page.waitForTimeout(1500);
   b = await page.locator('ytcp-button#save').first().boundingBox();
   await page.mouse.click(b.x + b.width / 2, b.y + b.height / 2);
   await page.waitForTimeout(4000);
-  if (!(await listed())) throw new Error(`video ${videoId} is uploaded but could not be added to the playlist "${PLAYLIST}"`);
-  console.log(`added to playlist: ${PLAYLIST}`);
+  ({ ticked } = await openDialog());
+  await page.keyboard.press('Escape');
+  if (!ticked) throw new Error(`video ${videoId} is uploaded but could not be added to the playlist "${PLAYLIST}"`);
+  console.log(`added to playlist: ${PLAYLIST} (${title})`);
 }
 
 // In the upload dialog: Playlists > Select > tick the playlist > Done.
