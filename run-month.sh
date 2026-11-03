@@ -8,6 +8,8 @@ cd ~/moli
 export PATH="$HOME/.nvm/versions/node/v24.20.0/bin:$PATH"
 M=${1:?month YYYY-MM}
 DATA=${MOLI_DATA:-$HOME/photos}
+# The work folder can be gone (it was deleted to free disk space on 2026-10-21; the build of 2026-10 failed on that).
+mkdir -p "$DATA/work" "$DATA/out"
 MONTHS=(January February March April May June July August September October November December)
 Y=${M%-*}; N=$((10#${M#*-}))
 TITLE="${MONTHS[$((N-1))]} $Y"
